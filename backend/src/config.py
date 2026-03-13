@@ -1,0 +1,14 @@
+from decouple import config
+
+GROQ_API_KEY = config("GROQ_API_KEY")
+TAVILY_API_KEY = config("TAVILY_API_KEY")
+HUGGINGFACEHUB_API_TOKEN = config("HUGGINGFACEHUB_API_TOKEN")
+QDRANT_URL = config("QDRANT_URL", default=None)
+QDRANT_API_KEY = config("QDRANT_API_KEY", default=None)
+
+GROQ_MODEL = "llama-3.3-70b-versatile"
+CHUNK_SIZE = 1000
+CHUNK_OVERLAP = 200
+RAG_TOP_K = 5
+MAX_RETRIES = 3
+MAX_TAVILY_CALLS = 10
