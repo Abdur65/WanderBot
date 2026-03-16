@@ -16,6 +16,8 @@ embeddings = HuggingFaceEndpointEmbeddings(
     huggingfacehub_api_token=HUGGINGFACEHUB_API_TOKEN
 )
 
+EMBEDDING_VECTOR_SIZE = 384  # sentence-transformers/all-MiniLM-L6-v2 output dimension
+
 _qdrant_client = QdrantClient(url=QDRANT_URL, api_key=QDRANT_API_KEY)
 _vector_stores: dict[str, QdrantVectorStore] = {}
 
@@ -25,25 +27,26 @@ def get_vector_store(destination: str) -> QdrantVectorStore:
         _vector_stores[destination] = QdrantVectorStore(
             client=_qdrant_client,
             collection_name=collection_name,
-            embedding_function=embeddings
+            embedding=embeddings,
+            validate_collection_config=False,
         )
     return _vector_stores[destination]
 
 def curate_knowledge(state: AgentState) -> dict:
     destination = state["destination"]
-    
+
     if state.get("knowledge_ready"):
         print(f"[Curate] Knowledge already indexed for {destination}, skipping.")
         return {}
-    
+
     print(f"[Curate] Searching for travel blogs about {destination}...")
-    
+
     results = search.invoke(f"Best travel guide blog {destination} things to do tips")
-    state["tavily_calls"] = state.get("tavily_calls", 0) + 1
-    
+    new_tavily_calls = state.get("tavily_calls", 0) + 1
+
     urls = [r["url"] for r in results if "url" in r]
     print(f"[Curate] Found {len(urls)} URLs to scrape.")
-    
+
     documents = []
     for url in urls[:4]:  # cap at 4 to avoid long waits
         try:
@@ -53,15 +56,25 @@ def curate_knowledge(state: AgentState) -> dict:
             print(f"[Curate] Scraped: {url}")
         except Exception as e:
             print(f"[Curate] Failed to scrape {url}: {e}")
-    
+
     if not documents:
         print("[Curate] No documents scraped — will rely on live search only.")
-        return {"knowledge_ready": True, "tavily_calls": state["tavily_calls"]}
-    
+        return {"knowledge_ready": True, "tavily_calls": new_tavily_calls}
+
     chunks = splitter.split_documents(documents)
-    print(f"[Curate] Indexed {len(chunks)} chunks into Qdrant.")
-    
+    print(f"[Curate] Split into {len(chunks)} chunks.")
+
+    # Ensure collection exists before writing (Qdrant won't auto-create it)
+    collection_name = f"travel_{destination.lower().replace(' ', '_')}"
+    if not _qdrant_client.collection_exists(collection_name):
+        _qdrant_client.create_collection(
+            collection_name=collection_name,
+            vectors_config=VectorParams(size=EMBEDDING_VECTOR_SIZE, distance=Distance.COSINE),
+        )
+        print(f"[Curate] Created Qdrant collection '{collection_name}'.")
+
     vector_store = get_vector_store(destination)
     vector_store.add_documents(chunks)
-    
-    return {"knowledge_ready": True, "tavily_calls": state["tavily_calls"]}
+    print(f"[Curate] Indexed {len(chunks)} chunks into Qdrant.")
+
+    return {"knowledge_ready": True, "tavily_calls": new_tavily_calls}

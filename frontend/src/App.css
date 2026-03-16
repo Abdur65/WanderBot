@@ -1,0 +1,28 @@
+/* Smooth fade between phases */
+.phase-enter {
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Custom scrollbar for itinerary panel */
+.itinerary-scroll::-webkit-scrollbar { width: 6px; }
+.itinerary-scroll::-webkit-scrollbar-track { background: transparent; }
+.itinerary-scroll::-webkit-scrollbar-thumb {
+  background: oklch(var(--bc) / 0.2);
+  border-radius: 3px;
+}
+
+/* Blinking cursor for live token stream */
+.stream-cursor::after {
+  content: "▋";
+  animation: blink 1s step-end infinite;
+  opacity: 0.7;
+}
+@keyframes blink {
+  0%, 100% { opacity: 0.7; }
+  50%       { opacity: 0; }
+}

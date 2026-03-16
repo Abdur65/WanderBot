@@ -16,7 +16,7 @@ def live_verifier(state: AgentState) -> dict:
     
     queries = [
         f"{destination} current weather travel conditions",
-        f"{destination} top attractions opening hours 2024 2025",
+        f"{destination} top attractions opening hours 2025 2026",
     ]
     
     live_snippets = []

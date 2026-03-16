@@ -1,0 +1,20 @@
+Phase 1 — Core LangGraph Agent
+Goal: A fully working agent graph that takes a destination, researches it, and produces a draft itinerary. No UI, no API. The graph is the product of this phase.
+
+Phase 2 — Anti-Hallucination Layer
+Goal: The LLM is structurally prevented from asserting facts without tool evidence. Every factual claim in the output carries a source citation.
+
+Phase 3 — Logistics Enrichment
+Goal: Every consecutive stop pair in the itinerary has a computed travel time and travel mode attached, sourced from a real API.
+
+Phase 4 — FastAPI Backend
+Goal: Expose the LangGraph agent over HTTP with SSE streaming so the React frontend can consume it. This is the last purely backend phase.
+
+Phase 5 — React Frontend
+Goal: A complete browser interface for WanderBot with a chat panel, itinerary preview, preference controls, and export functionality.
+
+Phase 6 — Integration Testing & Hardening
+Goal: End-to-end validation that the full stack — React → FastAPI → LangGraph → external APIs — works correctly as a system, and that it fails gracefully.
+
+Phase 7 — Polish, Export & Deployment
+Goal: Production-ready output, clean export, and deployed to free hosting with environment secrets properly managed.    

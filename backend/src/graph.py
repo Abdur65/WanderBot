@@ -8,12 +8,13 @@ from src.nodes.curate import curate_knowledge
 from src.nodes.rag_retriever import rag_retriever
 from src.nodes.live_verifier import live_verifier
 from src.nodes.draft_plan import draft_plan
+from src.nodes.validate_citations import validate_citations
 
 def human_review(state: AgentState) -> dict:
-    # LangGraph interrupt — pauses the graph and waits for external input
     user_input = interrupt({
         "draft_itinerary": state["draft_itinerary"],
-        "message": "Review the itinerary above. Type 'approve' to export or provide feedback."
+        "verification_score": state.get("verification_score", 0.0),
+        "message": "Review the itinerary above. Type 'approve' to export or provide feedback.",
     })
     return {"messages": [{"role": "user", "content": user_input}]}
 
@@ -34,15 +35,17 @@ def build_graph():
     builder.add_node("rag_retriever", rag_retriever)
     builder.add_node("live_verifier", live_verifier)
     builder.add_node("draft_plan", draft_plan)
+    builder.add_node("validate_citations", validate_citations)
     builder.add_node("human_review", human_review)
-    
+
     # Linear backbone
     builder.set_entry_point("analyze")
     builder.add_edge("analyze", "curate")
     builder.add_edge("curate", "rag_retriever")
     builder.add_edge("rag_retriever", "live_verifier")
     builder.add_edge("live_verifier", "draft_plan")
-    builder.add_edge("draft_plan", "human_review")
+    builder.add_edge("draft_plan", "validate_citations")
+    builder.add_edge("validate_citations", "human_review")
     
     # Conditional edges after review
     builder.add_conditional_edges("human_review", route_after_review, {
@@ -52,6 +55,6 @@ def build_graph():
     })
     
     memory = MemorySaver()
-    return builder.compile(checkpointer=memory, interrupt_before=["human_review"])
+    return builder.compile(checkpointer=memory)
 
 graph = build_graph()

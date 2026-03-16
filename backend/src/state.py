@@ -10,12 +10,22 @@ class Preferences(BaseModel):
     interests: list[str] = []
     dietary: list[str] = []
     mobility: Literal["walking", "transit", "driving"] = "transit"
+    
+    duration_days: int | None = None          # number of days
+    travel_party: Literal[
+        "solo", "family", "group"
+    ] = "solo"
+    accommodation_area: str | None = None     # neighbourhood or landmark
+    must_see: list[str] = []                  # anchored stops
+    avoid: list[str] = []                     # explicit exclusions
+    accessibility: list[str] = []            # physical constraints
 
 class AgentState(TypedDict):
     messages: Annotated[list, add_messages]
     destination: str
     preferences: Preferences
-    context: str                  
-    draft_itinerary: str         
-    tavily_calls: int             
-    knowledge_ready: bool       
+    context: str
+    draft_itinerary: str
+    tavily_calls: int
+    knowledge_ready: bool
+    verification_score: float     # computed by validate_citations
