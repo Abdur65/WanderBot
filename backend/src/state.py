@@ -13,7 +13,7 @@ class Preferences(BaseModel):
     
     duration_days: int | None = None          # number of days
     travel_party: Literal[
-        "solo", "family", "group"
+        "solo", "couple", "family", "group"
     ] = "solo"
     accommodation_area: str | None = None     # neighbourhood or landmark
     must_see: list[str] = []                  # anchored stops

@@ -8,6 +8,7 @@ from fastapi.responses import StreamingResponse, Response
 from langgraph.types import Command
 
 from src.graph import graph
+from src.state import Preferences
 from src.api.models import (
     PlanRequest,
     FeedbackRequest,
@@ -109,6 +110,7 @@ async def plan(request: PlanRequest) -> StreamingResponse:
     initial_state = {
         "messages": [{"role": "user", "content": request.message}],
         "destination": "",
+        "preferences": Preferences(),
         "context": "",
         "draft_itinerary": "",
         "tavily_calls": 0,

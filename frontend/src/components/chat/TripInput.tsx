@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Plane, MapPin } from 'lucide-react'
 
 const EXAMPLES = [
   '7 days in Tokyo, Japan — budget traveller, love street food and photography',
@@ -25,12 +26,12 @@ export default function TripInput({ onSubmit }: TripInputProps) {
     <div className="phase-enter flex flex-col items-center justify-center min-h-[calc(100vh-64px)] px-4 py-12">
       {/* Hero */}
       <div className="text-center mb-10 max-w-2xl">
-        <div className="text-6xl mb-4">✈️</div>
+        <div className="flex justify-center mb-4">
+          <Plane size={56} className="text-primary" />
+        </div>
         <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight mb-3">
           Plan Your{' '}
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">
-            Dream Trip
-          </span>
+          <span className="text-primary">Dream Trip</span>
         </h1>
         <p className="text-base-content/60 text-lg">
           Describe your trip and let AI craft a personalised, source-verified itinerary in minutes.
@@ -70,7 +71,7 @@ export default function TripInput({ onSubmit }: TripInputProps) {
                 className="btn btn-ghost btn-sm justify-start text-left h-auto py-2 px-3 font-normal text-base-content/70 hover:text-base-content border border-base-300 hover:border-primary transition-colors"
                 onClick={() => setMessage(ex)}
               >
-                <span className="mr-2">🗺️</span>
+                <MapPin size={14} className="mr-1 shrink-0" />
                 <span className="text-xs leading-snug">{ex}</span>
               </button>
             ))}

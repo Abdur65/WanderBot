@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from src.api.routes import router
+from decouple import config as decouple_config
 
 
 def create_app() -> FastAPI:
@@ -10,9 +11,14 @@ def create_app() -> FastAPI:
         version="0.4.0",
     )
 
+    allowed_origins = decouple_config(
+        "ALLOWED_ORIGINS",
+        default="http://localhost:5173"
+    ).split(",")
+
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],   # restrict to frontend origin in production
+        allow_origins=allowed_origins,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
@@ -22,7 +28,7 @@ def create_app() -> FastAPI:
 
     @app.get("/health")
     async def health():
-        return {"status": "ok"}
+        return {"status": "ok", "version": "0.4.0"}
 
     return app
 

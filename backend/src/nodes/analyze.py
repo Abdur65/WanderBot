@@ -123,11 +123,18 @@ chain = prompt | structured_llm
 def analyze_request(state: AgentState) -> dict:
     last_message = state["messages"][-1].content
 
-    # LLM-based destination extraction — handles multi-word places correctly
+    # Destination extracted from latest message only —
+    # multi-word places handled correctly via LLM extraction
     trip_info = destination_chain.invoke({"input": last_message})
     destination = trip_info.destination.strip() or last_message.strip().title()
 
-    preferences = chain.invoke({"input": last_message})
+    # Preferences extracted from full conversation history
+    # so previously stated values are preserved across refinement rounds
+    full_history = "\n".join(
+        f"{m.type}: {m.content}"
+        for m in state["messages"]
+    )
+    preferences = chain.invoke({"input": full_history})
 
     print(f"[Analyze] Destination: {destination}")
     print(f"[Analyze] Preferences: {preferences}")
@@ -135,7 +142,4 @@ def analyze_request(state: AgentState) -> dict:
     return {
         "destination": destination,
         "preferences": preferences,
-        "knowledge_ready": False,
-        "tavily_calls": 0,
-        "verification_score": 0.0,
     }

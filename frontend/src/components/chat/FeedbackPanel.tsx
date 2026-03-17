@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { CheckCircle } from 'lucide-react'
 
 interface FeedbackPanelProps {
   onApprove: () => void
@@ -31,7 +32,7 @@ export default function FeedbackPanel({ onApprove, onFeedback, isResuming }: Fee
           {isResuming ? (
             <span className="loading loading-spinner loading-sm" />
           ) : (
-            <span>✅</span>
+            <CheckCircle size={18} />
           )}
           Approve & Download Itinerary
         </button>

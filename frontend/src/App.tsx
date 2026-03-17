@@ -6,21 +6,22 @@ import TripInput from './components/chat/TripInput'
 import FeedbackPanel from './components/chat/FeedbackPanel'
 import PipelineProgress from './components/progress/PipelineProgress'
 import ItineraryView from './components/itinerary/ItineraryView'
+import { CheckCircle, Download, AlertTriangle } from 'lucide-react'
 
-type Theme = 'night' | 'light'
+type Theme = 'dark' | 'light'
 
 const NODE_STATUS: Record<string, string> = {
-  analyze:            '🔍 Analyzing your trip request…',
-  curate:             '📚 Curating knowledge from travel sources…',
-  rag_retriever:      '🗂️  Retrieving relevant context…',
-  live_verifier:      '📡 Verifying live travel data…',
-  draft_plan:         '✍️  Drafting your personalised itinerary…',
-  validate_citations: '🔒 Validating source citations…',
-  human_review:       '✅ Itinerary ready for your review!',
+  analyze:            'Analyzing your trip request…',
+  curate:             'Curating knowledge from travel sources…',
+  rag_retriever:      'Retrieving relevant context…',
+  live_verifier:      'Verifying live travel data…',
+  draft_plan:         'Drafting your personalised itinerary…',
+  validate_citations: 'Validating source citations…',
+  human_review:       'Itinerary ready for your review!',
 }
 
 export default function App() {
-  const [theme, setTheme] = useState<Theme>('night')
+  const [theme, setTheme] = useState<Theme>('dark')
   const { state, submitTrip, submitFeedback, triggerDownload, reset } = usePlanSession()
 
   // Apply theme to <html>
@@ -28,7 +29,7 @@ export default function App() {
     document.documentElement.setAttribute('data-theme', theme)
   }, [theme])
 
-  const toggleTheme = () => setTheme(t => (t === 'night' ? 'light' : 'night'))
+  const toggleTheme = () => setTheme(t => (t === 'dark' ? 'light' : 'dark'))
 
   const isActive = state.phase !== 'idle'
   const isStreaming = state.phase === 'streaming' || state.phase === 'resuming'
@@ -145,7 +146,7 @@ export default function App() {
           <div className="phase-enter max-w-3xl mx-auto px-4 py-8 flex flex-col gap-6">
             {/* Success banner */}
             <div className="alert alert-success shadow-lg">
-              <span className="text-xl">🎉</span>
+              <CheckCircle size={22} />
               <div>
                 <h3 className="font-bold">Itinerary approved!</h3>
                 <p className="text-sm opacity-80">
@@ -167,10 +168,10 @@ export default function App() {
                 className="btn btn-primary flex-1 gap-2"
                 onClick={triggerDownload}
               >
-                <span>⬇️</span> Download as Markdown
+                <Download size={16} /> Download as Markdown
               </button>
-              <button className="btn btn-ghost flex-1" onClick={reset}>
-                ＋ Plan Another Trip
+              <button className="btn btn-ghost flex-1 gap-2" onClick={reset}>
+                Plan Another Trip
               </button>
             </div>
           </div>
@@ -179,7 +180,7 @@ export default function App() {
         {/* ── ERROR ─────────────────────────────────────────────── */}
         {isError && (
           <div className="phase-enter max-w-xl mx-auto px-4 py-16 flex flex-col gap-6 items-center text-center">
-            <div className="text-5xl">⚠️</div>
+            <AlertTriangle size={48} className="text-error" />
             <div>
               <h2 className="text-2xl font-bold mb-2">Something went wrong</h2>
               <p className="text-base-content/60 text-sm mb-6">

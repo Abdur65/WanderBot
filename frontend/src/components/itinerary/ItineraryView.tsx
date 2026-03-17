@@ -9,10 +9,11 @@ interface ItineraryViewProps {
 function ScoreBadge({ score }: { score: number }) {
   const pct = Math.round(score * 100)
   const colour = pct >= 80 ? 'badge-success' : pct >= 50 ? 'badge-warning' : 'badge-error'
-  const emoji = pct >= 80 ? '🟢' : pct >= 50 ? '🟡' : '🔴'
+  const dot = pct >= 80 ? 'bg-success' : pct >= 50 ? 'bg-warning' : 'bg-error'
   return (
-    <span className={`badge ${colour} badge-outline gap-1 text-sm py-3 px-4`}>
-      {emoji} {pct}% verified
+    <span className={`badge ${colour} badge-outline gap-1.5 text-sm py-3 px-4`}>
+      <span className={`inline-block w-2 h-2 rounded-full ${dot}`} />
+      {pct}% verified
     </span>
   )
 }
