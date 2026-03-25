@@ -1,7 +1,9 @@
 import { fetchEventSource } from '@microsoft/fetch-event-source'
 import type { SSEEvent } from './types'
 
-const BASE = '/api/v1'
+// In dev: VITE_API_URL is unset → BASE = '/api/v1' (Vite proxy handles /api → localhost:8000)
+// In prod: VITE_API_URL = 'https://wanderbot-backend.onrender.com' → BASE = full URL + /api/v1
+const BASE = `${import.meta.env.VITE_API_URL ?? ''}/api/v1`;
 
 export async function createSession(): Promise<string> {
   const res = await fetch(`${BASE}/session`, { method: 'POST' })
