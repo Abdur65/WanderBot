@@ -8,6 +8,7 @@ from src.nodes.curate import curate_knowledge
 from src.nodes.rag_retriever import rag_retriever
 from src.nodes.live_verifier import live_verifier
 from src.nodes.draft_plan import draft_plan
+from src.nodes.logistics_enricher import logistics_enricher
 from src.nodes.validate_citations import validate_citations
 
 def human_review(state: AgentState) -> dict:
@@ -35,6 +36,7 @@ def build_graph():
     builder.add_node("rag_retriever", rag_retriever)
     builder.add_node("live_verifier", live_verifier)
     builder.add_node("draft_plan", draft_plan)
+    builder.add_node("logistics_enricher", logistics_enricher)
     builder.add_node("validate_citations", validate_citations)
     builder.add_node("human_review", human_review)
 
@@ -44,9 +46,10 @@ def build_graph():
     builder.add_edge("curate", "rag_retriever")
     builder.add_edge("rag_retriever", "live_verifier")
     builder.add_edge("live_verifier", "draft_plan")
-    builder.add_edge("draft_plan", "validate_citations")
+    builder.add_edge("draft_plan", "logistics_enricher")
+    builder.add_edge("logistics_enricher", "validate_citations")
     builder.add_edge("validate_citations", "human_review")
-    
+
     # Conditional edges after review
     builder.add_conditional_edges("human_review", route_after_review, {
         "export": END,

@@ -3,8 +3,9 @@ import { Plane, MapPin } from 'lucide-react'
 
 const EXAMPLES = [
   '7 days in Tokyo, Japan — budget traveller, love street food and photography',
-  '5 days in Paris as a couple, mid-range budget, art lover, avoid tourist traps',
-  '3 days in Kyoto, solo, moderate pace, interested in temples and nature walks',
+  '3 days in Jeddah, Saudi Arabia. Solo, nature, high-range budget, and local culture',
+  '4 days in Chittagong, Bangladesh, solo, love nature, high-range budget, and local culture',
+  '3 days in Kyoto, solo, moderate pace, interested in street food and nature walks',
   '10 days in Bali, Indonesia — luxury, beach, yoga retreats, no crowded spots',
 ]
 
@@ -72,7 +73,7 @@ export default function TripInput({ onSubmit }: TripInputProps) {
                 onClick={() => setMessage(ex)}
               >
                 <MapPin size={14} className="mr-1 shrink-0" />
-                <span className="text-xs leading-snug">{ex}</span>
+                <span className="text-sm leading-snug">{ex}</span>
               </button>
             ))}
           </div>

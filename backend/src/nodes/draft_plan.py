@@ -1,3 +1,4 @@
+import re
 from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
 from src.config import GROQ_API_KEY, GROQ_MODEL
@@ -94,6 +95,39 @@ Accessibility: {accessibility}
   If a venue's accessibility cannot be confirmed, note it as [Unverified —
   recommend calling ahead to confirm accessibility].
 
+═══════════════════════════════════════════
+ROUTING AND TRAVEL-TIME RULES — MANDATORY
+═══════════════════════════════════════════
+Impractical routing is the most common itinerary flaw. Apply these rules
+before writing a single time slot.
+
+1. GEOGRAPHIC CLUSTERING PER DAY
+   Every day must be anchored in one neighbourhood or zone of the city.
+   Do not mix venues from different parts of the city in the same day —
+   no "Louvre at 09:00, then Versailles at 11:00, then Montmartre at 13:00".
+   Plan each day so that all stops are within a 20–30 minute radius of each other.
+
+2. ROUTE OPTIMISATION WITHIN A DAY
+   Order stops to trace a logical geographic path — ideally a single direction
+   or loop. Never backtrack to a place already passed. Before assigning time
+   slots, mentally lay out all venues on a map and sort them spatially.
+
+3. MANDATORY TRAVEL BUFFER
+   The gap between the end of one stop and the start of the next MUST include
+   realistic travel time for the user's mobility mode:
+   - walking: allow 5–15 min per km; stops must be ≤1.5 km apart
+   - transit: allow 15–30 min including walking to/from the stop
+   - driving: allow 10–20 min including parking
+   If Venue A ends at 11:00 and the journey takes 20 min, Venue B starts at
+   11:20 — never 11:00 or 11:05.
+
+4. TRAVEL CONNECTOR PLACEHOLDER
+   After the last line of every venue block (but NOT after the last venue of
+   the day), insert this exact line with no extra text:
+   ↳ [LOGISTICS_PLACEHOLDER]
+   This marker will be replaced by real door-to-door travel times automatically.
+   Do NOT write a travel time estimate yourself — only the placeholder.
+
 ═══════════════════════════════
 ITINERARY STRUCTURE
 ═══════════════════════════════
@@ -101,36 +135,37 @@ Use this exact Markdown structure:
 
 # {destination} Itinerary — {duration_days} Days
 
-## Day 1 — [Day theme or neighbourhood focus]
+## Day 1 — [Neighbourhood or theme — keep stops in this zone all day]
+
+[One sentence: what this day covers and which area it stays in.]
 
 ### HH:MM–HH:MM  Venue or Activity Name
 Description of the stop. What to do, what to see, practical tips.
-Opening hours: HH:MM–HH:MM [src:N]
-Admission: [price or free] [src:N]
-[Any other factual details with citations]
+Opening hours: HH:MM–HH:MM [src:1]
+Admission: [price or free] [src:2]
+[Any other factual details with citations — use [src:N] where N is a digit, or [Unverified] if no source]
+↳ [LOGISTICS_PLACEHOLDER]
 
-### HH:MM–HH:MM  Next Venue
-...
+### HH:MM–HH:MM  Next Venue  ← start time MUST include travel time from previous stop
+Description...
+[last venue of the day — NO placeholder after this one]
 
-## Day 2 — [Day theme]
+## Day 2 — [Different neighbourhood from Day 1]
 ...
 
 ═══════════════════════════════
 ADDITIONAL GUIDELINES
 ═══════════════════════════════
-- Open each day with a one-sentence thematic framing (e.g. "Day 1 focuses on
-  the historic old town before moving into the local food scene in the evening.")
+- Open each day with a one-sentence thematic framing that names the area or
+  neighbourhood the day is centred on.
 - Lunch and dinner must be included for each day and must respect dietary
-  requirements.
+  requirements. Restaurants should be near the afternoon/evening venues, not
+  across town.
 - Do not pad the itinerary with generic advice ("wear comfortable shoes",
-  "drink water"). Every line must be specific to this destination and these
-  preferences.
+  "drink water"). Every line must be specific to this destination.
 - If the research context is sparse for a particular day or stop, build the
   best plan possible from available evidence and mark unconfirmed details with
   [Unverified]. Do not invent specifics.
-- Time slots must be realistic. Account for travel time between stops, meal
-  durations, and the user's pace preference. Do not schedule two stops 40 minutes
-  apart if they are on opposite sides of the city.
 - The itinerary must end each day at a reasonable hour consistent with the
   user's pace. A slow-pace day should not end at 22:00.
 
@@ -138,21 +173,55 @@ Research context from RAG and live verification:
 {context}
 """
 
-prompt = ChatPromptTemplate.from_messages([
+REVISION_SUFFIX = """
+═══════════════════════════════
+REVISION REQUEST
+═══════════════════════════════
+This is a REVISION of the itinerary below. The user has reviewed it and asked
+for the following changes:
+
+USER FEEDBACK:
+{feedback}
+
+ORIGINAL ITINERARY (for reference — revise this based on the feedback above):
+{existing_draft}
+
+Instructions:
+- Make ONLY the changes the user asked for. Keep everything else the same.
+- Rewrite the FULL itinerary — do not output a diff or partial update.
+- Apply the same anti-hallucination and citation rules as for a first draft.
+"""
+
+initial_prompt = ChatPromptTemplate.from_messages([
     ("system", SYSTEM),
-    ("human", "Plan a trip to {destination} for me.")
+    ("human", "Plan a trip to {destination} for me."),
 ])
 
-chain = prompt | llm
+revision_prompt = ChatPromptTemplate.from_messages([
+    ("system", SYSTEM + REVISION_SUFFIX),
+    ("human", "Please revise the itinerary based on my feedback."),
+])
+
+initial_chain = initial_prompt | llm
+revision_chain = revision_prompt | llm
+
+
+def _strip_badge(draft: str) -> str:
+    """Remove the verification badge blockquote prepended by validate_citations."""
+    return re.sub(r'^>.*Verification:.*\n\n', '', draft, flags=re.MULTILINE)
+
 
 def draft_plan(state: AgentState) -> dict:
     destination = state["destination"]
     preferences = state["preferences"]
     context = state.get("context", "No context available.")
-    
-    print(f"[Draft] Generating itinerary for {destination}...")
-    
-    response = chain.invoke({
+    existing_draft = state.get("draft_itinerary", "")
+
+    # Detect revision: a non-empty draft means at least one previous iteration ran
+    messages = state.get("messages", [])
+    is_revision = bool(existing_draft) and len(messages) > 1
+
+    shared_vars = {
         "destination": destination,
         "context": context,
         "pace": preferences.pace,
@@ -166,9 +235,25 @@ def draft_plan(state: AgentState) -> dict:
         "must_see": ", ".join(preferences.must_see) if preferences.must_see else "none specified",
         "avoid": ", ".join(preferences.avoid) if preferences.avoid else "none",
         "accessibility": ", ".join(preferences.accessibility) if preferences.accessibility else "no constraints",
-    })
-    
+    }
+
+    if is_revision:
+        # Extract the user's latest feedback from the message history
+        last_msg = messages[-1]
+        feedback = last_msg.content if hasattr(last_msg, "content") else str(last_msg)
+        clean_draft = _strip_badge(existing_draft)
+
+        print(f"[Draft] Revising itinerary for {destination} based on feedback: {feedback[:80]}…")
+        response = revision_chain.invoke({
+            **shared_vars,
+            "feedback": feedback,
+            "existing_draft": clean_draft,
+        })
+    else:
+        print(f"[Draft] Generating itinerary for {destination}…")
+        response = initial_chain.invoke(shared_vars)
+
     draft = response.content
     print(f"[Draft] Itinerary drafted ({len(draft)} chars).")
-    
+
     return {"draft_itinerary": draft}

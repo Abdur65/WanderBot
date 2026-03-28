@@ -61,6 +61,10 @@ export function usePlanSession() {
           draftItinerary: event.draft_itinerary,
           verificationScore: event.verification_score,
           streamingText: '',
+          // human_review completes its resume half before re-interrupting,
+          // so it ends up in completedNodes — remove it so the pipeline
+          // doesn't show "Ready" while we're still awaiting approval.
+          completedNodes: prev.completedNodes.filter(n => n !== 'human_review'),
         }))
         break
 

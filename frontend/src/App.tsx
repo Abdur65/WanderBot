@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import './App.css'
 import { usePlanSession } from './hooks/usePlanSession'
 import Navbar from './components/layout/Navbar'
@@ -6,7 +6,7 @@ import TripInput from './components/chat/TripInput'
 import FeedbackPanel from './components/chat/FeedbackPanel'
 import PipelineProgress from './components/progress/PipelineProgress'
 import ItineraryView from './components/itinerary/ItineraryView'
-import { CheckCircle, Download, AlertTriangle } from 'lucide-react'
+import { CheckCircle, Download, FileDown, AlertTriangle } from 'lucide-react'
 
 type Theme = 'dark' | 'light'
 
@@ -23,6 +23,66 @@ const NODE_STATUS: Record<string, string> = {
 export default function App() {
   const [theme, setTheme] = useState<Theme>('dark')
   const { state, submitTrip, submitFeedback, triggerDownload, reset } = usePlanSession()
+  const itineraryRef = useRef<HTMLDivElement>(null)
+
+  const downloadAsPdf = () => {
+    if (!itineraryRef.current) return
+    const destination = (state.destination || 'Trip').replace(/[\s,]+/g, ' ').trim()
+    const html = itineraryRef.current.innerHTML
+    const printWindow = window.open('', '_blank')
+    if (!printWindow) return
+    printWindow.document.write(`<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Itinerary — ${destination}</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: Georgia, 'Times New Roman', serif;
+      font-size: 13px;
+      line-height: 1.7;
+      color: #111;
+      background: #fff;
+      padding: 40px 52px;
+      max-width: 780px;
+      margin: 0 auto;
+    }
+    h1, h2, h3, h4 { font-family: 'Helvetica Neue', Arial, sans-serif; color: #1a1a2e; margin: 1.4em 0 0.4em; }
+    h1 { font-size: 22px; border-bottom: 2px solid #1a1a2e; padding-bottom: 6px; }
+    h2 { font-size: 17px; border-bottom: 1px solid #ccc; padding-bottom: 4px; }
+    h3 { font-size: 14px; }
+    p  { margin: 0.5em 0; }
+    ul, ol { padding-left: 1.4em; margin: 0.5em 0; }
+    li { margin: 0.2em 0; }
+    strong { font-weight: 700; }
+    em { font-style: italic; color: #444; }
+    a  { color: #1a1a2e; text-decoration: underline; }
+    hr { border: none; border-top: 1px solid #ddd; margin: 1em 0; }
+    table { width: 100%; border-collapse: collapse; margin: 0.8em 0; }
+    th, td { border: 1px solid #ccc; padding: 6px 10px; text-align: left; font-size: 12px; }
+    th { background: #f0f0f0; font-weight: 700; }
+    blockquote { border-left: 3px solid #aaa; padding-left: 12px; color: #555; margin: 0.8em 0; }
+    code { font-family: monospace; background: #f4f4f4; padding: 1px 4px; border-radius: 3px; font-size: 12px; }
+    @media print {
+      body { padding: 0; }
+      a { color: inherit; text-decoration: none; }
+    }
+  </style>
+</head>
+<body>
+  <h1>${destination} — Travel Itinerary</h1>
+  ${html}
+</body>
+</html>`)
+    printWindow.document.close()
+    printWindow.focus()
+    // Small delay so the browser finishes rendering before the print dialog opens
+    setTimeout(() => {
+      printWindow.print()
+      printWindow.close()
+    }, 400)
+  }
 
   // Apply theme to <html>
   useEffect(() => {
@@ -128,6 +188,7 @@ export default function App() {
 
             {/* Itinerary */}
             <ItineraryView
+              ref={itineraryRef}
               draft={state.draftItinerary}
               verificationScore={state.verificationScore}
             />
@@ -136,7 +197,7 @@ export default function App() {
             <FeedbackPanel
               onApprove={() => submitFeedback('approve')}
               onFeedback={submitFeedback}
-              isResuming={false}
+              isResuming={isStreaming}
             />
           </div>
         )}
@@ -158,19 +219,29 @@ export default function App() {
 
             {/* Itinerary view */}
             <ItineraryView
+              ref={itineraryRef}
               draft={state.draftItinerary}
               verificationScore={state.verificationScore}
             />
 
             {/* Action buttons */}
-            <div className="flex flex-col sm:flex-row gap-3">
-              <button
-                className="btn btn-primary flex-1 gap-2"
-                onClick={triggerDownload}
-              >
-                <Download size={16} /> Download as Markdown
-              </button>
-              <button className="btn btn-ghost flex-1 gap-2" onClick={reset}>
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button
+                  className="btn btn-primary flex-1 gap-2"
+                  onClick={triggerDownload}
+                >
+                  <Download size={16} /> Download as Markdown
+                </button>
+                <button
+                  className="btn btn-outline btn-primary flex-1 gap-2"
+                  onClick={downloadAsPdf}
+                >
+                  <FileDown size={16} />
+                  Download as PDF
+                </button>
+              </div>
+              <button className="btn btn-ghost w-full gap-2" onClick={reset}>
                 Plan Another Trip
               </button>
             </div>

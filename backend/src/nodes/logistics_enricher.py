@@ -129,5 +129,11 @@ def logistics_enricher(state: AgentState) -> dict:
     mobility = state["preferences"].mobility
     draft = state.get("draft_itinerary", "")
 
+    if not ORS_API_KEY:
+        # No ORS key — strip placeholders so they don't appear in the output
+        print("[Logistics] ORS_API_KEY not set — stripping placeholders.")
+        clean = re.sub(r'↳ \[LOGISTICS_PLACEHOLDER\]\n?', '', draft)
+        return {"draft_itinerary": clean}
+
     print(f"[Logistics] Enriching stops for {destination} (mobility: {mobility})...")
     return {"draft_itinerary": _enrich(draft, destination, mobility)}
