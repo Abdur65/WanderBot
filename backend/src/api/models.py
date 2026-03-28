@@ -9,6 +9,10 @@ class PlanRequest(BaseModel):
         ...,
         description="Natural-language trip request, e.g. '3 days in Kyoto, Japan, budget traveller'",
     )
+    start_date: str | None = Field(
+        default=None,
+        description="Optional travel start date in ISO-8601 format (YYYY-MM-DD).",
+    )
 
 class FeedbackRequest(BaseModel):
     thread_id: str
@@ -34,10 +38,29 @@ class LLMTokenEvent(BaseModel):
     event: Literal["llm_token"] = "llm_token"
     token: str
 
+class VenueCoordinate(BaseModel):
+    name: str
+    lat: float
+    lon: float
+    day: int
+    time: str
+
+class WeatherDay(BaseModel):
+    day: int
+    date: str
+    high_c: float | None = None
+    low_c: float | None = None
+    rain_prob: int | None = None
+    description: str
+    is_forecast: bool
+
 class InterruptEvent(BaseModel):
     event: Literal["interrupt"] = "interrupt"
     draft_itinerary: str
     verification_score: float
+    venue_coordinates: list[VenueCoordinate] = []
+    weather_data: list[WeatherDay] = []
+    travel_start_date: str | None = None
     message: str = "Review the itinerary above. Type 'approve' to export or provide feedback."
 
 class DoneEvent(BaseModel):

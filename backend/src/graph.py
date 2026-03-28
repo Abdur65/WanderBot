@@ -1,5 +1,6 @@
+import aiosqlite
 from langgraph.graph import StateGraph, END
-from langgraph.checkpoint.memory import MemorySaver
+from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 from langgraph.types import interrupt
 
 from src.state import AgentState
@@ -7,6 +8,7 @@ from src.nodes.analyze import analyze_request
 from src.nodes.curate import curate_knowledge
 from src.nodes.rag_retriever import rag_retriever
 from src.nodes.live_verifier import live_verifier
+from src.nodes.weather_enricher import weather_enricher
 from src.nodes.draft_plan import draft_plan
 from src.nodes.logistics_enricher import logistics_enricher
 from src.nodes.validate_citations import validate_citations
@@ -24,40 +26,40 @@ def route_after_review(state: AgentState) -> str:
     if last == "approve":
         return "export"
     elif any(w in last for w in ["food", "restaurant", "eat", "cuisine"]):
-        return "rag"   # re-retrieve with new angle
+        return "rag"
     else:
-        return "draft"  # small adjustment, re-draft only
+        return "draft"
 
-def build_graph():
+async def build_graph_async():
+    conn = await aiosqlite.connect("wanderbot_checkpoints.db")
+    checkpointer = AsyncSqliteSaver(conn)
+
     builder = StateGraph(AgentState)
-    
+
     builder.add_node("analyze", analyze_request)
     builder.add_node("curate", curate_knowledge)
     builder.add_node("rag_retriever", rag_retriever)
     builder.add_node("live_verifier", live_verifier)
+    builder.add_node("weather_enricher", weather_enricher)
     builder.add_node("draft_plan", draft_plan)
     builder.add_node("logistics_enricher", logistics_enricher)
     builder.add_node("validate_citations", validate_citations)
     builder.add_node("human_review", human_review)
 
-    # Linear backbone
     builder.set_entry_point("analyze")
     builder.add_edge("analyze", "curate")
     builder.add_edge("curate", "rag_retriever")
     builder.add_edge("rag_retriever", "live_verifier")
-    builder.add_edge("live_verifier", "draft_plan")
+    builder.add_edge("live_verifier", "weather_enricher")
+    builder.add_edge("weather_enricher", "draft_plan")
     builder.add_edge("draft_plan", "logistics_enricher")
     builder.add_edge("logistics_enricher", "validate_citations")
     builder.add_edge("validate_citations", "human_review")
 
-    # Conditional edges after review
     builder.add_conditional_edges("human_review", route_after_review, {
         "export": END,
         "rag": "rag_retriever",
         "draft": "draft_plan",
     })
-    
-    memory = MemorySaver()
-    return builder.compile(checkpointer=memory)
 
-graph = build_graph()
+    return builder.compile(checkpointer=checkpointer)

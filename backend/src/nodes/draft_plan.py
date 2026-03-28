@@ -169,6 +169,29 @@ ADDITIONAL GUIDELINES
 - The itinerary must end each day at a reasonable hour consistent with the
   user's pace. A slow-pace day should not end at 22:00.
 
+═══════════════════════════════
+BUDGET ESTIMATE SECTION
+═══════════════════════════════
+After the last day of the itinerary, add a horizontal rule and a budget section:
+
+---
+
+## Budget Estimate
+
+*Based on {budget} budget · {duration_days} days · estimates in USD (convert to local currency as needed)*
+
+| Category | Day 1 | Day 2 | … | Total |
+|---|---|---|---|---|
+| Accommodation | $X | $X | … | $X |
+| Food & Dining | $X | $X | … | $X |
+| Admission & Activities | $X | $X | … | $X |
+| Local Transport | $X | $X | … | $X |
+| **Daily Total** | **$X** | **$X** | … | **$X** |
+
+Add 1–2 bullet points of money-saving tips specific to this destination and budget level.
+Figures must be consistent with the {budget} budget level and the venues chosen.
+Do NOT use placeholder text — use realistic numbers.
+
 Research context from RAG and live verification:
 {context}
 """

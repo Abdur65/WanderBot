@@ -6,7 +6,7 @@ import TripInput from './components/chat/TripInput'
 import FeedbackPanel from './components/chat/FeedbackPanel'
 import PipelineProgress from './components/progress/PipelineProgress'
 import ItineraryView from './components/itinerary/ItineraryView'
-import { CheckCircle, Download, FileDown, AlertTriangle } from 'lucide-react'
+import { CheckCircle, Download, FileDown, CalendarDays, AlertTriangle } from 'lucide-react'
 
 type Theme = 'dark' | 'light'
 
@@ -22,7 +22,7 @@ const NODE_STATUS: Record<string, string> = {
 
 export default function App() {
   const [theme, setTheme] = useState<Theme>('dark')
-  const { state, submitTrip, submitFeedback, triggerDownload, reset } = usePlanSession()
+  const { state, submitTrip, submitFeedback, triggerDownload, triggerCalendarDownload, reset } = usePlanSession()
   const itineraryRef = useRef<HTMLDivElement>(null)
 
   const downloadAsPdf = () => {
@@ -191,6 +191,8 @@ export default function App() {
               ref={itineraryRef}
               draft={state.draftItinerary}
               verificationScore={state.verificationScore}
+
+              weatherData={state.weatherData}
             />
 
             {/* Feedback / Approve */}
@@ -222,6 +224,8 @@ export default function App() {
               ref={itineraryRef}
               draft={state.draftItinerary}
               verificationScore={state.verificationScore}
+
+              weatherData={state.weatherData}
             />
 
             {/* Action buttons */}
@@ -240,6 +244,15 @@ export default function App() {
                   <FileDown size={16} />
                   Download as PDF
                 </button>
+                {state.travelStartDate && (
+                  <button
+                    className="btn btn-outline btn-primary flex-1 gap-2"
+                    onClick={triggerCalendarDownload}
+                  >
+                    <CalendarDays size={16} />
+                    Export Calendar
+                  </button>
+                )}
               </div>
               <button className="btn btn-ghost w-full gap-2" onClick={reset}>
                 Plan Another Trip

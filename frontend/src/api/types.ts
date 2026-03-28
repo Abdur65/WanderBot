@@ -4,8 +4,17 @@ export type NodeName =
   | 'rag_retriever'
   | 'live_verifier'
   | 'draft_plan'
+  | 'logistics_enricher'
   | 'validate_citations'
   | 'human_review'
+
+export interface VenueCoordinate {
+  name: string
+  lat: number
+  lon: number
+  day: number
+  time: string
+}
 
 export interface NodeStartEvent {
   event: 'node_start'
@@ -25,10 +34,23 @@ export interface LLMTokenEvent {
   token: string
 }
 
+export interface WeatherDay {
+  day: number
+  date: string
+  high_c: number | null
+  low_c: number | null
+  rain_prob: number | null
+  description: string
+  is_forecast: boolean
+}
+
 export interface InterruptEvent {
   event: 'interrupt'
   draft_itinerary: string
   verification_score: number
+  venue_coordinates: VenueCoordinate[]
+  weather_data: WeatherDay[]
+  travel_start_date: string | null
   message: string
 }
 

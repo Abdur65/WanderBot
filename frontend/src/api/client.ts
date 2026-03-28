@@ -17,11 +17,12 @@ export function streamPlan(
   message: string,
   onEvent: (e: SSEEvent) => void,
   signal: AbortSignal,
+  startDate?: string | null,
 ): Promise<void> {
   return fetchEventSource(`${BASE}/plan`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ thread_id: threadId, message }),
+    body: JSON.stringify({ thread_id: threadId, message, start_date: startDate ?? null }),
     signal,
     openWhenHidden: true,  // keep stream alive when tab is hidden/switched
     onmessage(msg) {
@@ -54,6 +55,19 @@ export function streamFeedback(
       throw err
     },
   })
+}
+
+export async function downloadCalendar(threadId: string): Promise<void> {
+  const res = await fetch(`${BASE}/export/calendar/${threadId}`)
+  if (!res.ok) throw new Error('Calendar export failed')
+  const blob = await res.blob()
+  const cd = res.headers.get('Content-Disposition') ?? ''
+  const match = cd.match(/filename="(.+?)"/)
+  const filename = match?.[1] ?? 'itinerary.ics'
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url; a.download = filename; a.click()
+  URL.revokeObjectURL(url)
 }
 
 export async function downloadItinerary(threadId: string): Promise<void> {

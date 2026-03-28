@@ -85,6 +85,12 @@ travel_party:
   "group", "friends", "colleagues" → "group"
   If not mentioned → default "solo"
 
+travel_start_date:
+  Extract any explicit travel start date. Convert to ISO 8601 (YYYY-MM-DD).
+  "starting June 15", "from 15th June 2025", "leaving on 2025-06-15" → "2025-06-15"
+  "in March" or "next summer" without a specific date → null
+  If not mentioned → null
+
 accommodation_area:
   Extract any neighbourhood, district, landmark, or area the user mentions
   as their base or hotel location.
@@ -135,6 +141,14 @@ def analyze_request(state: AgentState) -> dict:
         for m in state["messages"]
     )
     preferences = chain.invoke({"input": full_history})
+
+    # travel_start_date is passed via the API date picker, not as text in the
+    # user's message. If the LLM didn't extract one, preserve the value that
+    # was seeded into state by the /plan endpoint.
+    if not preferences.travel_start_date:
+        existing = state.get("preferences")
+        if existing and existing.travel_start_date:
+            preferences.travel_start_date = existing.travel_start_date
 
     print(f"[Analyze] Destination: {destination}")
     print(f"[Analyze] Preferences: {preferences}")

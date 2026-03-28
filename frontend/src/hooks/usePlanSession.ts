@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from 'react'
-import { createSession, downloadItinerary, streamFeedback, streamPlan } from '../api/client'
-import type { SSEEvent } from '../api/types'
+import { createSession, downloadCalendar, downloadItinerary, streamFeedback, streamPlan } from '../api/client'
+import type { SSEEvent, VenueCoordinate, WeatherDay } from '../api/types'
 
 export type AppPhase = 'idle' | 'streaming' | 'interrupted' | 'resuming' | 'done' | 'error'
 
@@ -13,6 +13,9 @@ export interface PlanState {
   streamingText: string
   draftItinerary: string
   verificationScore: number
+  venueCoordinates: VenueCoordinate[]
+  weatherData: WeatherDay[]
+  travelStartDate: string | null
   error: string | null
 }
 
@@ -25,6 +28,9 @@ const INITIAL: PlanState = {
   streamingText: '',
   draftItinerary: '',
   verificationScore: 0,
+  venueCoordinates: [],
+  weatherData: [],
+  travelStartDate: null,
   error: null,
 }
 
@@ -60,10 +66,10 @@ export function usePlanSession() {
           activeNode: null,
           draftItinerary: event.draft_itinerary,
           verificationScore: event.verification_score,
+          venueCoordinates: event.venue_coordinates ?? [],
+          weatherData: event.weather_data ?? [],
+          travelStartDate: event.travel_start_date ?? null,
           streamingText: '',
-          // human_review completes its resume half before re-interrupting,
-          // so it ends up in completedNodes — remove it so the pipeline
-          // doesn't show "Ready" while we're still awaiting approval.
           completedNodes: prev.completedNodes.filter(n => n !== 'human_review'),
         }))
         break
@@ -78,7 +84,7 @@ export function usePlanSession() {
     }
   }, [])
 
-  const submitTrip = useCallback(async (message: string) => {
+  const submitTrip = useCallback(async (message: string, startDate?: string | null) => {
     abortRef.current?.abort()
     const ac = new AbortController()
     abortRef.current = ac
@@ -88,7 +94,7 @@ export function usePlanSession() {
     try {
       const threadId = await createSession()
       setState(prev => ({ ...prev, threadId }))
-      await streamPlan(threadId, message, handleEvent, ac.signal)
+      await streamPlan(threadId, message, handleEvent, ac.signal, startDate)
     } catch (err) {
       if ((err as Error).name !== 'AbortError') {
         setState(prev => ({
@@ -130,11 +136,14 @@ export function usePlanSession() {
 
   const triggerDownload = useCallback(async () => {
     if (!state.threadId) return
-    try {
-      await downloadItinerary(state.threadId)
-    } catch (err) {
-      setState(prev => ({ ...prev, error: (err as Error).message }))
-    }
+    try { await downloadItinerary(state.threadId) }
+    catch (err) { setState(prev => ({ ...prev, error: (err as Error).message })) }
+  }, [state.threadId])
+
+  const triggerCalendarDownload = useCallback(async () => {
+    if (!state.threadId) return
+    try { await downloadCalendar(state.threadId) }
+    catch (err) { setState(prev => ({ ...prev, error: (err as Error).message })) }
   }, [state.threadId])
 
   const reset = useCallback(() => {
@@ -142,5 +151,5 @@ export function usePlanSession() {
     setState(INITIAL)
   }, [])
 
-  return { state, submitTrip, submitFeedback, triggerDownload, reset }
+  return { state, submitTrip, submitFeedback, triggerDownload, triggerCalendarDownload, reset }
 }
